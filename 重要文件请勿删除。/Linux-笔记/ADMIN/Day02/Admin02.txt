@@ -1,0 +1,337 @@
+
+
+
+
+Linux是一种操作系统
+
+   操作系统: 一堆软件的集合，让计算机硬件正常的工作
+
+• UNIX诞生,1970-1-1
+
+#####################################################
+
+Linux的诞生
+• Linux之父,Linus Torwalds
+
+     用户---------->系统内核---------->硬件
+
+     – 版本号:主版本.次版本.修订号
+
+• 是一套公开发布的完整Linux系统
+– Linux内核 + 各种应用软件
+
+Linux文件系统
+• 基本作用
+– 定义向磁盘介质上存储文档的方法和数据结构,以及
+读取文档的规则
+– 不同类型的文件系统,其存储/读取方式不一样
+– 格式化操作就是建立新的文件系统
+
+• 一块硬盘的“艺术”之旅
+– 物理硬盘==>分区规划==>格式化==>读/写文档
+
+
+• 典型的文件系统类型
+– EXT4,第四代扩展文件系统,RHEL6系列默认
+– XFS,高级日志文件系统,RHEL7系列默认
+– SWAP,交换空间(虚拟内存)缓解物理内存的压力
+
+   / 根目录： 所有数据都在此目录下（Linux系统的起点）
+
+  /dev: 所有设备相关的数据 
+
+   路径：  /dev/nsd/abc/test.txt
+
+ hd,表示IDE设备
+ sd,表示SCSI设备
+
+   /dev/sda   /dev/sdb   /dev/sdc      /dev/sdd 
+   /dev/hda   /dev/hdb   /dev/hdc    /dev/hdd
+
+   /dev/sda1      /dev/sda5        /dev/sdc6
+
+   /dev/sdc6:SCSI设备第三块硬盘第6个分区
+
+##################################################
+
+  鼠标回到真机：Ctrl+Alt
+
+###################################################
+RHEL7基本操作
+
+获取命令行界面
+• 虚拟控制台切换( Ctrl + Alt + Fn 组合键)
+– tty1:图形桌面
+– tty2~tty6:字符控制台
+
+
+###################################################
+  伪字符终端
+
+ • 右键“在终端中打开”
+ • 应用程序 --> 工具 --> 终端
+
+################################################### 
+以 #号结尾代表  管理员  root
+以 $号结尾代表  普通用户
+
+###################################################
+查看及切换目录
+• pwd — Print Working Directory
+– 用途:查看当前工作目录
+
+
+• cd — Change Directory
+– 用途:切换工作目录
+– 格式:cd [目标文件夹位置]
+
+
+• ls — List
+– 格式:ls [选项]... [目录或文件名]...
+
+
+[root@localhost ~]# pwd                 #显示当前所在位置
+
+[root@localhost ~]# cd   /              #切换到根目录下
+[root@localhost /]# pwd
+
+[root@localhost /]# ls                  #显示当前目录内容
+bin   etc   lib64  opt   run   sys  var
+boot  home  media  proc  sbin  tmp
+dev   lib   mnt    root  srv   usr
+
+[root@localhost /]# ls /home         #显示/home目录下内容
+[root@localhost /]# ls /root         #显示/root目录下内容
+[root@localhost /]# ls /dev          #显示/dev目录下内容
+[root@localhost /]# ls /etc          #显示/etc目录下内容
+[root@localhost /]# ls /var          #显示/var目录下内容
+
+  蓝色：目录
+  黑色：文本文件
+
+
+  以 / 开始的绝对路径
+  以当前为参照的相对路径
+
+
+[root@localhost /]# cd  /etc/pki/        #绝对路径
+[root@localhost pki]# ls
+[root@localhost pki]# cd  /etc/pki/CA    #绝对路径
+[root@localhost CA]# pwd
+[root@localhost CA]# ls
+
+[root@localhost CA]# cd /etc/pki/     #绝对路径  
+[root@localhost pki]# pwd
+[root@localhost pki]# ls
+[root@localhost pki]# cd CA           #相对路径
+[root@localhost CA]# pwd
+
+[root@localhost CA]# cd  ..        #后退，返回上一级
+[root@localhost pki]# pwd        
+[root@localhost pki]# cd  ..       #后退，返回上一级
+[root@localhost etc]# pwd
+
+#####################################################
+cat 查看文本文件内容
+
+  /etc/redhat-release：存储当前系统的版本
+
+[root@localhost etc]# cat   /etc/redhat-release
+
+[root@localhost etc]# cat   /etc/passwd
+[root@localhost etc]# cat   /etc/group
+
+[root@localhost etc]# cat   /etc/shells
+
+[root@localhost etc]# cat   /etc/default/useradd
+
+[root@localhost etc]# cat   /etc/fstab
+
+
+• 命令行的一般格式,每一部分之间都要有一个空格
+ – 命令字      [选项]...      [参数1]     [参数2]...
+
+    操作        如何执行该操作         作用对象
+   
+######################################################
+
+
+• 列出内核版本
+[root@svr7 桌面]# uname -r
+3.10.0-327.el7.x86_64
+
+[root@svr7 桌面]# cat  /etc/redhat-release
+
+[root@svr7 桌面]# cat  -n  /etc/redhat-release
+[root@svr7 桌面]# cat  -n  /etc/shells
+[root@svr7 桌面]# cat  -n  /etc/passwd
+##################################################
+ls命令
+• 常用命令选项
+– -l :以长格式显示, 显示详细属性
+
+[root@localhost /]# ls  -l   /etc/redhat-release
+
+[root@localhost /]# ls  -l   /root
+
+[root@localhost /]# ls  -l   /boot
+
+[root@localhost /]# ls  -l   /etc/passwd
+
+[root@localhost /]# ls  -l   /etc/fstab
+
+[root@localhost /]# ls  -l   /etc/shadow
+
+########################################################
+• 列出CPU处理器信息
+[root@svr7 桌面]# lscpu
+
+• 检查内存大小、空闲情况
+[root@svr7 桌面]# cat /proc/meminfo
+
+#######################################################
+
+
+
+
+• 列出已激活的网卡连接信息
+
+  eth0:第一张网卡名字
+[root@localhost /]# ifconfig
+
+[root@localhost /]# ifconfig eth0 192.168.1.1  #临时设置IP
+[root@localhost /]# ifconfig 
+
+
+[root@localhost /]# ping 127.0.0.1
+
+   127.0.0.1/8 特殊ip地址：永远代表自己
+
+   Ctrl+c ：结束正在运行的命令
+
+######################################################
+• 列出当前系统的主机名称
+[root@localhost ～]# hostname
+
+[root@localhost ～]# hostname  nsd.tmooc.cn
+
+[root@localhost ～]# hostname
+
+  新开一个终端验证，提示符号变化
+
+
+• 关机:poweroff
+[root@svr7 ~]# poweroff
+
+• 重启:reboot
+[root@svr7 ~]# reboot
+
+#####################################################
+
+创建文档
+• mkdir — Make Directory
+– 格式:mkdir  [/路径/]目录名...
+
+
+[root@nsd ~]# ls  /opt/
+
+[root@nsd ~]# mkdir /opt/nsd01
+[root@nsd ~]# ls  /opt/
+
+[root@nsd ~]# mkdir nsd02
+[root@nsd ~]# ls
+
+[root@nsd ~]# mkdir  /root/abc   /opt/test
+[root@nsd ~]# ls  /root/
+
+[root@nsd ~]# ls  /opt/
+
+创建文档
+• touch命令
+– 用途:新建空文件
+
+[root@nsd ~]# touch /opt/1.txt  /root/abc.txt
+[root@nsd ~]# ls /opt/
+[root@nsd ~]# ls /root/
+
+[root@nsd ~]# touch  2.txt
+[root@nsd ~]# ls 
+
+
+#################################################
+文本内容操作
+• less分屏阅读工具
+• 格式:less [选项] 文件名...
+• 按键盘上下键可以滚动
+• 全文查找 /root
+
+[root@nsd ~]# less /etc/passwd
+
+######################################################
+• head、tail 命令
+– 格式:head -n 数字 文件名
+   tail -n 数字 文件名
+
+[root@nsd ~]# head -3 /etc/passwd
+[root@nsd ~]# head -4 /etc/passwd
+
+[root@nsd ~]# head  /etc/passwd           #默认头十行内容
+
+[root@nsd ~]# tail -3 /etc/passwd
+[root@nsd ~]# tail -4 /etc/passwd
+
+[root@nsd ~]# tail  /etc/passwd           #默认尾十行内容
+
+########################################################
+• grep工具
+– 用途:输出包含指定字符串的行
+– 格式:grep [选项]... '查找条件' 目标文件
+
+[root@nsd ~]# grep  root  /etc/passwd 
+[root@nsd ~]# grep  bash  /etc/passwd 
+
+[root@nsd ~]# grep  bin   /etc/passwd 
+
+[root@nsd ~]# grep  sbin  /etc/passwd 
+
+######################################################
+ 补全键 Tab : 补全命令 与 补全路径
+
+######################################################
+
+[root@nsd ~]# ls /etc/sysconfig/network-scripts/ifcfg-eth0
+
+[root@nsd ~]# if（连续两次tab）
+
+[root@nsd ~]# ifco（tab）
+
+# ls /et(tab)/sysco(tab)/netw(tab)-(tab)/ifc(tab)e(tab)
+
+[root@nsd ~]# cat  /et(tab)/redh(tab)-r(tab)
+
+######################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

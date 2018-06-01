@@ -1,0 +1,87 @@
+三层交换机配置：
+
+建三个vlan
+Switch(config)#vlan 10
+Switch(config)#vlan 11
+Switch(config)#vlan 12
+
+三个vlan配置ip地址作为pc机的网关
+Switch(config)#interface vlan 10
+Switch(config-if)#ip address 192.168.10.254 255.255.255.0
+Switch(config)#interface vlan 11
+Switch(config-if)#ip address 192.168.11.254 255.255.255.0
+Switch(config)#interface vlan 12
+Switch(config-if)#ip address 192.168.12.254 255.255.255.0
+
+把f0/1接口加入vlan10
+Switch(config)#interface fastEthernet 0/1
+Switch(config-if)#switchport access vlan 10
+
+f0/2口要先打ieee802.1q封装，然后配置为中继链路
+Switch(config)#interface fastEthernet 0/2
+Switch(config-if)#switchport trunk encapsulation dot1q 
+Switch(config-if)#switchport mode trunk 
+
+f0/3口要转换为路由器接口，然后配置ip
+Switch(config)#interface fastEthernet 0/3
+Switch(config-if)#no switchport 
+Switch(config-if)#ip address 192.168.20.2 255.255.255.0
+
+为了让内网pc机可以访问外部的任意网络还需要手工添加一条默认路由
+Switch(config)#ip route 0.0.0.0 0.0.0.0 192.168.20.1
+
+为了让内网全互通，还需要开启ospf动态路由协议
+先开启三层交换机的路由功能
+Switch(config)#ip routing
+Switch(config)#router ospf 1
+Switch(config-router)#network 192.168.10.0 0.0.0.255 area 0
+Switch(config-router)#network 192.168.11.0 0.0.0.255 area 0
+Switch(config-router)#network 192.168.12.0 0.0.0.255 area 0
+Switch(config-router)#network 192.168.20.0 0.0.0.255 area 0
+
+sw2配置：
+这个交换机由于连接了2个vlan，所以要先创建vlan11和vlan12
+Switch>enable 
+Switch#configure terminal 
+Switch(config)#vlan 11
+Switch(config-vlan)#vlan 12
+
+f0/1接口连接了vlan11
+Switch(config)#interface fastEthernet 0/1
+Switch(config-if)#switchport access vlan 11
+
+f0/3接口连接了vlan12
+Switch(config)#interface fastEthernet 0/3
+Switch(config-if)#switchport access vlan 12
+
+f0/2口是中继链路
+Switch(config)#interface fastEthernet 0/2
+Switch(config-if)#switchport mode trunk 
+
+
+路由器的配置：
+先给两个接口配置ip
+Router(config)#interface g0/0
+Router(config-if)#ip add 192.168.20.1 255.255.255.0
+Router(config-if)#no shutdown 
+Router(config)#interface g0/1
+Router(config-if)#ip add 200.0.0.1 255.0.0.0
+Router(config-if)#no shutdown 
+
+这个路由器因为连接了内网和外网，所以为了把内网配通需要开启ospf，为了连接外网，需要配置nat（pat端口多路复用）
+先配置ospf，注意这里只宣告内网的网段，外网的网段不需要宣告，要另外
+用默认路由配通
+Router(config)#router ospf 1
+Router(config-router)#network 192.168.20.0 0.0.0.255 area 0
+Router(config)#ip route 0.0.0.0 0.0.0.0 200.0.0.10
+
+配置pat端口多路复用，使内网主机均可用路由器f0/1接口的公网地址访问公网
+Router(config)#access-list 1 permit any 
+Router(config)#ip nat inside source list 1 interface g0/1 overload 
+Router(config)#interface g0/0
+Router(config-if)#ip nat inside 
+Router(config)#interface g0/1
+Router(config-if)#ip nat outside 
+
+最后公网pc设置好ip与子网掩码即可，不需要网关。
+

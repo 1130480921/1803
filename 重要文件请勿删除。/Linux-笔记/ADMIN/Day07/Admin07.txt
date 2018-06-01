@@ -1,0 +1,465 @@
+还原三台虚拟机器
+[root@room9pc01 ~]# rht-vmctl reset classroom
+[root@room9pc01 ~]# rht-vmctl reset server
+[root@room9pc01 ~]# rht-vmctl reset desktop
+
+#################################################
+
+附加权限
+
+Set UID
+• 附加在属主的 x 位上
+– 属主的权限标识会变为 s
+– 适用于可执行文件,Set UID可以让使用者具有文件属主的身份及部分权限
+
+Sticky Bit
+• 附加在其他人的 x 位上
+– 其他人的权限标识会变为 t
+– 适用于开放 w 权限的目录,可以阻止用户滥用 w 写入
+权限(禁止操作别人的文档)
+
+[root@server0 ~]# mkdir /public
+[root@server0 ~]# chmod ugo=rwx /public
+[root@server0 ~]# ls -ld /public
+
+[root@server0 ~]# chmod o+t /public
+[root@server0 ~]# ls -ld /public
+
+######################################################
+查找文本内容
+• 根据字符串模式提取文本行
+– grep [选项]  '匹配模式'    文本文件...
+
+
+[root@server0 ~]# grep  root   /etc/passwd
+
+[root@server0 ~]# grep  ROOT   /etc/passwd
+[root@server0 ~]# grep -i ROOT /etc/passwd   #忽略大小写
+
+[root@server0 ~]# grep -v root /etc/passwd   #取反查找
+
+– ^word 以字符串word开头
+– word$ 以字符串word结尾
+
+[root@server0 ~]# grep ^root /etc/passwd
+
+[root@server0 ~]# grep root$ /etc/passwd
+
+[root@server0 ~]# grep bash$ /etc/passwd
+
+[root@server0 ~]# grep ^root /etc/shadow
+ 
+  匹配空行
+
+[root@server0 ~]# grep  ^$  /etc/default/useradd 
+
+[root@server0 ~]# grep -v ^$  /etc/default/useradd
+
+  显示文件的内容，有效的配置（去除注释以#开头的行、去除空行）
+
+ # grep -v  ^#  /etc/default/useradd
+ # grep -v  ^#  /etc/default/useradd   |  grep -v ^$
+
+ # grep -v  ^#  /etc/login.defs
+ # grep -v  ^#  /etc/login.defs  | grep   -v ^$ 
+
+#####################################################
+查找文件
+• 根据预设的条件递归查找对应的文件
+– find [目录] [条件1] [-a|-o] [条件2] ...
+
+– 常用条件表示:
+  -type  类型(f文件、d目录、l快捷方式)
+  -name  "文档名称"
+
+  -size  +|-文件大小(k、M、G)
+  -user  用户名
+
+
+[root@server0 ~]# find /boot/ -type f   #文本文件
+ 
+[root@server0 ~]# find /boot/ -type d   #目录
+
+[root@server0 ~]# find /boot/ -type l   #快捷方式
+
+[root@server0 ~]# ls -l /boot/grub/menu.lst
+
+
+[root@server0 ~]# find /etc/ -name "passwd"
+/etc/passwd
+/etc/pam.d/passwd
+
+[root@server0 ~]# find /etc/ -name "*tab"
+
+[root@server0 ~]# find /etc/ -name "*tab*"
+
+ 请查找/etc以 .conf 结尾（包含子目录）
+[root@server0 ~]# find /etc -name "*.conf"
+
+ 请查找/etc以 .conf 结尾（不包含子目录）
+[root@server0 ~]# ls /etc/*.conf
+
+
+[root@server0 ~]# touch /root/nsd01.txt
+[root@server0 ~]# touch /root/nsd02.txt
+[root@server0 ~]# mkdir /root/nsd1803
+
+[root@server0 ~]# find /root/ -name "nsd*"
+
+[root@server0 ~]# find /root/ -name "nsd*"  -type f
+
+[root@server0 ~]# find /root/ -name "nsd*"  -type d
+
+######################################################
+  -size +10M
+
+[root@server0 ~]# find  /boot/  -size  +10M
+[root@server0 ~]# find  /boot/  -size  +300k
+
+  -user 用户
+
+[root@server0 ~]# find  /home/ -user student
+[root@server0 ~]# find  /    -user student
+
+  -group 组名
+
+[root@server0 ~]# find  /home/ -group student
+	
+####################################################
+查找文件
+• 使用find命令的 -exec 操作
+– find .. .. -exec 处理命令 {} \;
+– 优势:以 {} 代替每一个结果,逐个处理,遇 \; 结束
+
+# find /boot/ -name "vm*"
+# find /boot/ -name "vm*"  -exec cp  {}  /opt  \;
+# ls /opt/
+
+
+# find /boot/ -size +10M
+# find /boot/ -size +10M   -exec cp  {}  /opt  \;
+# ls /opt/
+
+
+# find /root/ -name "nsd*"  -type  f
+# find /root/ -name "nsd*"  -type  f  -exec cp  {} /opt  \;
+# ls /opt/
+
+#######################################################
+• 根据名称查找,忽略大小写
+– -iname
+[root@server0 ~]# find /etc/ -name "PASSWD"
+[root@server0 ~]# find /etc/ -iname "PASSWD"
+/etc/passwd
+/etc/pam.d/passwd
+[root@server0 ~]# 
+
+• 限制目录查找的深度(最大层数)
+– -maxdepth
+[root@server0 ~]# find /etc/ -maxdepth 1  -name "*.conf"
+[root@server0 ~]# find /etc/ -maxdepth 2  -name "*.conf"
+[root@server0 ~]# find /etc/ -maxdepth 3  -name "*.conf"
+
+[root@server0 ~]# find /etc/ -maxdepth 1  -name "passwd"
+[root@server0 ~]# find /etc/ -maxdepth 2  -name "passwd"
+
+查找文件
+• 根据文件修改时间，都是过去时间
+ -mtime +10  #过去10天之前
+ -mtime -10  #最近10天之内
+
+[root@server0 ~]# find  /var/log/  -mtime  -10
+
+[root@server0 ~]# find  /var/log/  -mtime  +100
+
+#######################################################
+cron计划任务
+
+cron任务概述
+• 用途:按照设置的时间间隔为用户反复执行某一项固
+定的系统任务
+
+• 软件包:cronie、crontabs
+• 系统服务:crond
+• 日志文件:/var/log/crond
+
+如何编写crontab任务记录
+ 分   时    日    月    周         任务命令行(绝对路径)
+
+ *     *      *     *      *
+
+ 0    8       *      *     5
+  
+ 30  23     *      *     *
+
+	* :匹配范围内任意时间
+	,  :分隔多个不连续的时间点
+	-  :指定连续时间范围
+	/n :指定时间频率,每n ...
+
+  30  23     *      *    1，3，5
+
+  30  23     *      *    2-5
+
+  0    */2     *    *    *
+
+• 使用 crontab 命令
+– 编辑:crontab -e [-u 用户名]
+– 查看:crontab -l [-u 用户名]
+– 清除:crontab -r [-u 用户名]
+
+   每分钟记录当前系统的时间，写入文件/opt/time.txt
+ [root@server0 ~]# date >> /opt/time.txt
+ [root@server0 ~]# cat /opt/time.txt
+
+ [root@server0 ~]# crontab -e -u root
+ [root@server0 ~]# crontab -l -u root
+ */1   *   *   *   *   date >> /opt/time.txt
+
+  分       时     日    月    周
+
+
+####################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

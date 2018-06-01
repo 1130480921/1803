@@ -1,0 +1,392 @@
+教学环境介绍
+
+• 每个学员机上有三台预先配置好的虚拟机
+  – server —— 作为练习用服务器
+  – desktop —— 作为练习用客户机
+  – classroom —— 提供网关/DNS/软件素材等资源
+  
+   首先保证 classroom 优先开启机器
+
+  server与 desktop  用户root密码 为redhat
+
+还原三台虚拟机器
+[root@room9pc01 ~]# rht-vmctl reset classroom
+[root@room9pc01 ~]# rht-vmctl reset server
+[root@room9pc01 ~]# rht-vmctl reset desktop
+
+   虚拟机Server： 利用root密码 为redhat
+
+             查询Server虚拟机IP地址： 172.25.0.11          
+             查询Server虚拟机主机名：  server0.example.com
+             查询Server虚拟机系统版本：  7.0
+
+   虚拟机Desktop： 利用root密码 为redhat
+
+             查询Desktop虚拟机IP地址： 172.25.0.10         
+             查询Desktop虚拟机主机名：  desktop0.example.com
+             查询Desktop虚拟机系统版本：  7.0
+
+    可以相互通信
+
+#######################################################
+真机远程管理
+   默认真机远程管理虚拟机Desktop和虚拟机Server
+  
+   ssh   用户名@对方IP地址
+
+    以什么样的用户身份，登陆到那个服务器
+
+[root@room9pc01 ~]# ssh root@172.25.0.11
+Last login: Tue Apr  3 10:12:33 2018 from 172.25.0.250
+[root@server0 ~]# hostname
+server0.example.com
+[root@server0 ~]# ifconfig 
+
+[root@server0 ~]#  exit            #退出远程管理
+
+
+在真机上：Ctrl + shfit + t  新开一个终端
+
+ 分别远程管理虚拟机Server0与虚拟机Desktop0
+
+  ssh  root@172.25.0.11
+
+  ssh  root@172.25.0.10
+  
+#####################################################
+
+软件包的管理
+
+虚拟机Server0
+1.关闭虚拟机Server0，图形添加光驱设备
+
+2.挂载/dev/cdrom设备，具备软件包
+[root@server0 ~]# mkdir /dvd
+[root@server0 ~]# mount /dev/cdrom /dvd
+
+[root@server0 ~]# ls /dvd
+[root@server0 ~]# ls /dvd/Packages 
+
+
+• RPM Package Manager,RPM包管理器
+– rpm  -q   软件名...
+– rpm  -ivh 软件名-版本信息.rpm...
+– rpm  -e   软件名...
+
+
+[root@server0 ~]# rpm -q firefox     #查询软件包是否安装
+firefox-24.5.0-1.el7.x86_64
+[root@server0 ~]# rpm -q haha
+[root@server0 ~]# rpm -q zip
+[root@server0 ~]# rpm -q vsftpd
+
+# rpm  -ivh /dvd/Packages/vsftpd-3.0.2-22.el7.x86_64.rpm 
+
+警告：/dvd/Packages/vsftpd-3.0.2-22.el7.x86_64.rpm: 头V3 RSA/SHA256 Signature, 密钥 ID fd431d51: NOKEY
+
+[root@server0 ~]# rpm -q vsftpd      #查询是否安装成功
+[root@server0 ~]# rpm -e vsftpd      #卸载软件包
+[root@server0 ~]# rpm -q vsftpd      #查询是否卸载成功
+ 
+ 
+ 了解：导入红帽的签名信息
+
+ # rpm --import /dvd/RPM-GPG-KEY-redhat-release 
+
+#####################################################
+常见的报错：	
+
+  错误：依赖检测失败
+
+######################################################
+Yum软件包仓库，自动解决依赖关系
+
+ 服务：为客户端 自动解决依赖 安装软件
+
+ 服务端: classroom虚拟机搭建Web服务，共享光盘所有内容
+
+ http://classroom.example.com/content/rhel7.0/x86_64/dvd/
+
+
+ 客户端: Server虚拟机
+
+ -X:在本地运行对方的图形程序
+
+[root@server0 ~]# exit  #退出远程管理
+
+[root@room9pc01 ~]# ssh  -X  root@172.25.0.11
+Last login: Tue Apr  3 14:04:11 2018 from 172.25.0.250
+
+[root@server0 ~]# firefox  classroom.example.com
+
+   配置文件的路径：/etc/yum.repos.d/*.repo
+   错误的配置文件，会影响正确配置文件
+ 
+[root@server0 ~]# rm -rf /etc/yum.repos.d/*
+[root@server0 ~]# vim /etc/yum.repos.d/dvd.repo
+
+ [rhel7]                #仓库标识
+ name=nsd 1803          #仓库的描述信息
+ baseurl=http://classroom.example.com/content/rhel7.0/x86_64/dvd/              #指定Yum仓库的位置
+ enabled=1              #启用该文件
+ gpgcheck=0             #关闭检测软件包签名功能
+
+[root@server0 ~]# yum repolist    #列出仓库信息
+
+#######################################################
+Yum的使用
+
+  安装： yum  -y  install  软件名
+  卸载： yum  remove  软件名
+
+[root@server0 ~]# yum -y install xeyes
+[root@server0 ~]# yum -y install sssd  
+[root@server0 ~]# yum -y install gcc
+[root@server0 ~]# yum -y install httpd
+[root@server0 ~]# yum -y install system-config-kickstart 
+
+[root@server0 ~]# xeyes &         #放入后台
+[root@server0 ~]# killall xeyes   #杀死该程序
+
+清空Yum的缓存
+[root@server0 ~]# yum clean all
+
+#####################################################
+
+下载软件包
+• 使用wget下载工具
+  – wget 软件包的URL网址
+  – wget 软件包的URL网址 -O /目录路径/新文件名
+# wget http://classroom.example.com/content/rhel7.0/x86_64/errata/Packages/kernel-3.10.0-123.1.2.el7.x86_64.rpm
+
+  默认下载到当前目录
+
+升级内核
+[root@server0 ~]# uname -r
+3.10.0-123.el7.x86_64
+
+# rpm -ivh kernel-3.10.0-123.1.2.el7.x86_64.rpm
+
+[root@server0 ~]# uname -r
+3.10.0-123.el7.x86_64
+[root@server0 ~]# reboot 
+[root@room9pc01 ~]# ssh -X root@172.25.0.11
+Last login: Tue Apr  3 14:14:57 2018 from 172.25.0.250
+[root@server0 ~]# uname -r
+######################################################
+配置网络
+
+一、配置永久的主机名,配置文件/etc/hostname
+
+[root@server0 ~]# vim  /etc/hostname
+A.tedu.cn
+
+[root@server0 ~]# exit
+登出
+Connection to 172.25.0.11 closed.
+[root@room9pc01 ~]# ssh -X root@172.25.0.11
+[root@A ~]# hostname
+A.tedu.cn
+[root@A ~]# 
+
+二、配置永久IP地址，子网掩码，网关地址
+
+ /etc/sysconfig/network-scripts/ifcfg-eth0 网卡配置文件
+1.查询识别的网卡名称
+[root@A ~]# nmcli connection show
+
+2.配置IP地址，子网掩码，网关地址
+# nmcli   connection   modify   'System eth0'     
+ ipv4.method   manual                                    
+ ipv4.addresses   '172.25.0.100/24   172.25.0.254'       
+ connection.autoconnect   yes 
+
+  nmcli connection 修改网络配置  '网卡名'
+  ipv4.方法  手工配置
+  ipv4.地址  'IP地址/子网掩码    网关地址'
+    每次开机自动启用配置
+
+3.激活配置
+[root@A ~]# nmcli connection up 'System eth0'
+关闭终端，新开一个全新的终端进行远程管理
+[root@room9pc01 ~]# ssh -X root@172.25.0.100
+三、配置DNS服务器地址
+      作用：将域名解析为对应的IP地址
+
+   /etc/resolv.conf    DNS服务器地址的配置文件
+ 
+   vim 命令模式    dd    删除整行内容
+                10dd  删除10整行内容
+  
+ [root@A ~]# vim  /etc/resolv.conf 
+  nameserver   172.25.254.254
+	
+ 验证：
+ [root@A ~]# nslookup desktop0.example.com
+ [root@A ~]# nslookup server0.example.com
+
+####################################################
+
+
+
+
+
+
+
+
+#######################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

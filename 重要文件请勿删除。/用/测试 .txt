@@ -1,0 +1,105 @@
+
+
+1.查看内核    IP/MAC ifconfig  CPU 内存
+
+uname -r    ifconfig      lscpu     cat /proc/meminfo
+2.查看主机名   永久修改主机名修改哪个配置文件？
+
+hostname    vim /etc/hostname
+
+3.MBR分区表最多可以多少主分区？多少逻辑分区？多少扩展分区？
+
+4个主分区
+
+4.命令的一般格式：基本用法？
+
+ 命令    选项      参数
+
+5.终止当前命令操作快捷键是？
+
+ctrl+c
+
+6.查看/etc/下以.conf结尾 （不包括子目录）
+
+ls /etc/*conf
+
+7.查看/root/目录本身的权限并以长格式显示
+
+ls -ld /root
+
+8.递归创建目录命令是？递归查看显示命令是？
+
+mkdir -p         
+
+9.复制一个目录 要求保留权限并且连着子目录全部的命令是？
+
+cp -r 
+
+10.默写yum 配置文件存放路径 命名规则 配置文件内容及解释？
+
+vim /etc/yum.repos.d/*.repo
+[  ]
+name=
+baseurl=地址
+enabled=1
+gpgcheck=0
+
+11.创建用户sili 指定UID为2228 登录shell /bin/nologin 家目录为/data/sili
+
+useradd -u 2228 -s /bin/nologon -d /data/sili sili
+
+12.非交互模式为sili创建密码 lisi
+
+echo 123 | passwd  --stdin sili
+ 
+13。创建用户组nsd1709，并且修改sili的附加组为nsd1709
+
+groupadd nsd1709       gpasswd -a sili nsd1709
+
+14.简述下列 ：权限，所属者，所属组，是什么类型？（文件还是目录）
+-rwxrw-r-- . 1 root root 1618 1月  10 2017 ******
+
+目录  所属者 :读 写 执行    所属组 ：读  
+
+15.修改权限的命令是？修改所属组的命令式？递归是什么选项
+
+chmod      chown     -R
+
+16.除了基本权限，还有两种什么权限？
+
+特殊权限    acl权限
+
+17.分区之后识别新分区表命令是？
+
+lsblk
+
+18.常用的格式化命令是？ext4  xfs swap
+
+mkfs.
+
+19.开机自动挂载文件是？内容格式是？  
+
+/etc/fstab
+
+20.NTP客户端软件包及配置文件路径。
+
+
+
+21.编写周期性计划任务命令是什么？时间格式是？
+22.设置alias别名，为单个用户设置应该修改哪个配置文件？为所有用户呢？
+
+vim /etc/bashrc
+
+23.
+tar  grep  find  nmcli网络配置  LVM  （开卷）
+列出命令   写出选项，参数   含义（作用） 
+
+
+
+
+
+http://qsserver.tmooc.cn/qsserver/source/web/result/web/exam/2018/4/26/7187695_1524753186219.html
+
+
+
+http://10.7.11.171/show_quest/考试

@@ -1,0 +1,573 @@
+
+还原三台虚拟机器
+[root@room9pc01 ~]# rht-vmctl reset classroom
+[root@room9pc01 ~]# rht-vmctl reset server
+[root@room9pc01 ~]# rht-vmctl reset desktop
+
+####################################################
+用户管理
+   
+ 用户帐号：  1.可以登陆操作系统  2.实现访问控制（不同的用户权限不同）
+
+   组帐号： 方便对用户管理（权限方面）
+
+   唯一标识： UID  GID 
+
+   管理员的UID：0
+ 
+   一个用户必须至少属于一个组
+   组分类：基本组（私有组）      附加组（从属组 公共组）
+
+###################################################
+添加用户
+用户基本信息存放在 /etc/passwd 文件
+[root@server0 ~]# head -1 /etc/passwd
+ root:x:0:0:root:/root:/bin/bash
+
+  用户名:密码占位符:UID:基本组的GID:描述信息:家目录:解释器程序
+
+• 使用 useradd 命令
+– useradd [选项]... 用户名
+
+• 常用命令选项
+– -u 用户id、-d 家目录路径、-s 登录Shell、-G 附加组
+
+[root@server0 ~]# useradd nsd01
+[root@server0 ~]# id nsd01          #显示用户基本信息
+
+[root@server0 ~]# useradd nsd03
+[root@server0 ~]# grep nsd /etc/passwd
+
+[root@server0 ~]# useradd -u 1200 nsd04   #创建用户指定UID
+[root@server0 ~]# grep nsd /etc/passwd
+
+[root@server0 ~]# useradd nsd05
+[root@server0 ~]# grep nsd /etc/passwd
+
+######################################################
+[root@server0 ~]# useradd -d /opt/test nsd06  #指定家目录
+[root@server0 ~]# grep nsd06 /etc/passwd
+nsd06:x:1202:1202::/opt/test:/bin/bash
+[root@server0 ~]# ls /opt/
+[root@server0 ~]# ls -A /opt/test
+
+[root@server0 ~]# groupadd tarena           #创建组
+[root@server0 ~]# useradd -G tarena nsd07   #指定加入附加组
+[root@server0 ~]# id nsd07
+
+[root@server0 ~]# useradd -d /opt/abc -G tarena  nsd08
+[root@server0 ~]# id nsd08
+[root@server0 ~]# grep nsd08 /etc/passwd
+
+####################################################
+  -s 登录Shell（解释器）
+
+      用户 -------> 解释器 ------->内核------->硬件
+
+  /sbin/nologin  :禁止用户登陆系统
+
+[root@server0 ~]# useradd -s /sbin/nologin nsd09
+[root@server0 ~]# grep nsd09  /etc/passwd
+
+####################################################
+管道 操作  |  :
+      将前面命令的输出结果，交由后面命令在处理一次，最后的输出以最后一条命令为准
+
+ # cat -n /etc/passwd
+ # cat -n /etc/passwd  |   head -12
+
+ # cat -n /etc/passwd  |   head -12   |   tail -5
+
+ # ifconfig  |  head -2
+
+ # ls --help  |  less
+
+ #  grep root /etc/passwd 
+ #  grep root /etc/passwd  |  grep bash
+
+#################################################
+重定向   
+    >:覆盖重定向 
+    >>:追加重定向 
+
+  将前面命令的输出结果，写入文本文件中
+[root@server0 ~]# head -3 /etc/passwd
+[root@server0 ~]# head -3 /etc/passwd  > /opt/pass.txt
+[root@server0 ~]# cat /opt/pass.txt
+
+[root@server0 ~]# hostname
+[root@server0 ~]# hostname > /opt/pass.txt 
+[root@server0 ~]# cat /opt/pass.txt
+
+[root@server0 ~]# hostname >> /opt/pass.txt 
+[root@server0 ~]# cat /opt/pass.txt
+
+[root@server0 ~]# head -2 /etc/passwd >> /opt/pass.txt
+[root@server0 ~]# cat /opt/pass.txt
+
+ echo  在屏幕输出用户想输出的内容
+
+[root@server0 ~]# echo A.tedu.cn
+A.tedu.cn
+[root@server0 ~]# echo A.tedu.cn  >  /etc/hostname
+[root@server0 ~]# cat /etc/hostname
+
+[root@server0 ~]# echo nameserver 172.25.254.255
+
+# echo nameserver 172.25.254.254 > /etc/resolv.conf 
+
+[root@server0 ~]# cat /etc/resolv.conf
+
+[root@server0 ~]# echo 123456 > /opt/1.txt
+[root@server0 ~]# cat /opt/1.txt
+
+#######################################################
+
+设置登录密码
+    用户密码信息存放在 /etc/shadow 文件
+[root@server0 ~]# head -1 /etc/shadow
+  用户名:密码加密字符串:上一次修改密码的时间
+
+• 使用 passwd 命令
+交互式： passwd [用户名]
+非交互式：echo '密码'   |   passwd --stdin 用户名
+
+[root@server0 ~]# echo 123456 | passwd --stdin nsd01
+
+[root@server0 ~]# su - nsd01    #临时切换用户身份
+
+[nsd01@A ~]$ passwd 
+Changing password for user nsd01.
+Changing password for nsd01.
+(current) UNIX password:    #输入旧密码
+New password:               #输入新密码
+Retype new password:        #重新输入新密码
+passwd: all authentication tokens updated successfully.
+[nsd01@A ~]$ exit           #退出临时身份，回到root
+logout
+[root@server0 ~]#  
+
+#####################################################
+修改用户属性
+• 使用 usermod 命令
+– usermod [选项]... 用户名
+
+• 常用命令选项
+– -u 用户id、-d 家目录路径、-s 登录Shell
+– -G 附加组
+[root@server0 ~]# useradd nsd11
+[root@server0 ~]# id nsd11
+
+[root@server0 ~]# grep nsd11 /etc/passwd
+
+[root@server0 ~]# usermod -u 1300 -G tarena               
+  -d /opt/nsd11 -s /sbin/nologin nsd11
+
+[root@server0 ~]# grep nsd11 /etc/passwd
+[root@server0 ~]# id nsd11
+
+补充： 可以利用vim修改/etc/passwd文件内容
+
+###################################################
+
+删除用户
+• 使用 userdel 命令
+– userdel  [-r]  用户名    #将该用户的家目录一起删除
+
+[root@server0 ~]# userdel nsd01
+[root@server0 ~]# userdel nsd05
+
+###################################################
+管理组账号
+
+  组基本信息存放在 /etc/group 文件
+ [root@server0 ~]# head  -1  /etc/group
+ root:x:0:
+
+  组名:x:GID:组的成员列表
+
+添加组
+组基本信息存放在 /etc/group 文件
+• 使用 groupadd 命令
+– groupadd [-g 组ID] 组名
+
+[root@server0 ~]# groupadd  stugrp
+[root@server0 ~]# grep stugrp /etc/group
+
+[root@server0 ~]# useradd harry
+[root@server0 ~]# useradd natasha
+[root@server0 ~]# useradd jack
+[root@server0 ~]# useradd kenji
+
+管理组成员
+• 使用 gpasswd 命令
+– gpasswd -a 用户名 组名
+– gpasswd -d 用户名 组名
+
+[root@server0 ~]# grep stugrp /etc/group
+[root@server0 ~]# gpasswd -a kenji stugrp   #添加用户到组
+[root@server0 ~]# grep stugrp /etc/group
+
+[root@server0 ~]# gpasswd -a harry stugrp
+[root@server0 ~]# grep stugrp /etc/group
+
+[root@server0 ~]# gpasswd -a natasha stugrp
+[root@server0 ~]# grep stugrp /etc/group
+
+[root@server0 ~]# gpasswd -d kenji stugrp   #从组中删除用户
+[root@server0 ~]# grep stugrp /etc/group
+
+[root@server0 ~]# gpasswd -a jack stugrp
+[root@server0 ~]# grep stugrp /etc/group
+
+
+删除组
+• 使用 groupdel 命令
+– groupdel 组名
+
+[root@server0 ~]# groupdel stugrp
+[root@server0 ~]# grep stugrp /etc/group
+
+########################################################
+tar备份与恢复
+
+归档和压缩 : 1.方便对零散文件管理    2.减少空间的占用
+
+  常见的压缩格式及命令工具:
+   gzip ----> .gz
+   bzip2 ---->.bz2
+   xz ----> .xz
+
+• tar 集成备份工具
+ – -c:创建归档
+ – -x:释放归档
+ – -f:指定归档文件名称
+ – -z、-j、-J:调用 .gz、.bz2、.xz 格式的工具进行处理
+ – -t:显示归档中的文件清单
+ – -C:指定释放的位置
+
+ 格式： tar  选项     /路径/压缩包名字    被归档及压缩的文件
+ 红色：压缩文件
+#  tar  -zcf   file.tar.gz        /home/  /etc/passwd 
+#  ls 
+
+#  tar -zcf  /opt/nsd01.tar.gz     /home/ /etc/passwd
+#  ls /opt/
+
+#  mkdir /nsd
+#  ls /nsd
+#  tar -xf  /opt/nsd01.tar.gz    -C  /nsd/
+#  ls /nsd
+
+#  tar -tf /opt/nsd01.tar.gz  
+  
+ – -c:创建归档
+ – -x:释放归档
+ – -f:指定归档文件名称
+ – -z、-j、-J:调用 .gz、.bz2、.xz 格式的工具进行处理
+ – -t:显示归档中的文件清单
+ – -C（大写）:指定释放的位置
+
+[root@server0 ~]# tar -jcf /root/backup.tar.bz2 /usr/local/
+
+[root@server0 ~]# ls /root/
+[root@server0 ~]# tar -tf /root/backup.tar.bz2  
+    #查看归档文件的内容
+######################################################
+	– tar -zcf 备份文件.tar.gz 被备份的文档....
+	– tar -jcf 备份文件.tar.bz2 被备份的文档....
+	– tar -Jcf 备份文件.tar.xz 被备份的文档....
+######################################################
+NTP时间同步
+
+[root@server0 ~]# date
+2018年 04月 04日 星期三 16:10:18 CST
+
+[root@server0 ~]# date +%Y         #显示年份
+[root@server0 ~]# date +%m         #显示月份
+[root@server0 ~]# date +%d         #显示日期
+[root@server0 ~]# date +%Y%m%d     #显示年月日
+
+[root@server0 ~]# date +%Y-%m-%d   #显示年月日
+
+[root@server0 ~]# date +%F         #显示年月日
+
+修改时间：
+[root@server0 ~]# date -s  "年-月-日     时：分：秒"
+
+[root@server0 ~]# date -s   "2008-9-6   12:10:11"
+
+[root@server0 ~]# date 
+
+
+服务：NTP服务器为客户机提供标准时间
+
+ 服务端：classroom时间同步服务器
+
+
+ 客户端：虚拟机Server
+
+ 1.安装chrony客户端软件,与时间服务端沟通的软件
+[root@server0 ~]# yum -y install chrony
+[root@server0 ~]# rpm -q chrony
+chrony-1.29.1-1.el7.x86_64
+
+ 2.修改配置文件/etc/chrony.conf,指定服务端位置
+[root@server0 ~]# vim  /etc/chrony.conf 
+	#server 0.rhel.pool.ntp.org iburst   #开头加上# 注释
+	#server 1.rhel.pool.ntp.org iburst   #开头加上# 注释
+	#server 2.rhel.pool.ntp.org iburst   #开头加上# 注释
+	server classroom.example.com iburst  #指定服务端位置
+
+ 3. 启动客户端chronyd服务
+      daemon: 守护进程，守护程序
+[root@server0 ~]# systemctl restart chronyd  #重起服务
+[root@server0 ~]# systemctl enable chronyd   #设置随机自启动
+
+ 4.验证：
+[root@server0 ~]# date  -s "2000-10-1 10:12:30"
+2000年 10月 01日 星期日 10:12:30 CST
+[root@server0 ~]# date
+[root@server0 ~]# systemctl restart chronyd
+[root@server0 ~]# date
+[root@server0 ~]# date
+
+##################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

@@ -1,0 +1,814 @@
+还原三台虚拟机器
+[root@room9pc01 ~]# rht-vmctl reset classroom
+[root@room9pc01 ~]# rht-vmctl reset server
+[root@room9pc01 ~]# rht-vmctl reset desktop
+
+######################################################
+修改防火墙的默认区域为trusted
+
+虚拟机Server
+[root@server0 ~]# firewall-cmd --set-default-zone=trusted 
+
+虚拟机desktop
+[root@desktop0 ~]# firewall-cmd --set-default-zone=trusted
+
+##############################################
+ iSCSI网络磁盘
+
+一、fdisk 划分 分区
+[root@server0 ~]# lsblk 
+[root@server0 ~]# fdisk /dev/vdb
+
+    三个主分区 , 分别2个G大小        
+    两个逻辑分区 , 分别1个G大小 
+
+[root@server0 ~]# lsblk
+[root@server0 ~]# ls /dev/vdb[1-6]
+
+二、搭建iscsi共享存储
+
+• Internet SCSI,网际SCSI接口
+– 一种基于C/S架构的虚拟磁盘技术
+– 服务器提供磁盘空间,客户机连接并当成本地磁盘使用
+– 端口：3260
+
+思路：example：快递打包送货
+
+服务端：  TCL王牌大彩电  2寸-------->装箱 ------->  运输
+               
+客户端：   ------》箱子 ------->拆开
+
+
+共享存储服务端： /dev/vdb1(nsd)-->装箱(Target 磁盘组)--》传输
+
+共享存储客户端： 箱子(Target 磁盘组)----->拆开
+
+使用targetcli建立配置
+• ISCSI Qualified Name 名称规范
+– iqn.yyyy-mm.倒序域名:自定义标识
+
+
+虚拟机server0_搭建iscsi服务端：
+
+1.安装可以提供共享存储功能的软件targetcli
+[root@server0 ~]# yum  -y  install targetcli
+
+2.进行配置共享存储
+  1）建立后端存储backstore,指定后端存储是那个分区，起名
+
+ [root@server0 ~]# targetcli 
+  /> ls                      #查看所有配置
+  /> backstores/block  create  nsd  /dev/vdb1
+       后端存储/类型为块设备    创建       名字    实际设备路径
+
+   2）创建箱子并起名（建立iqn磁盘组）
+  /> iscsi/  create  iqn.2018-16.com.example:server0
+
+   3）将后端存储，放入箱子中（磁盘组 绑定 后端存储 luns）
+  /> iscsi/iqn.2018-16.com.example:server0/tpg1/luns 
+      create   /backstores/block/nsd 
+
+   4）设置ACL访问控制(客户端访问时声称的名字)
+  
+  />iscsi/iqn.2018-16.com.example:server0/tpg1/acls
+      create   iqn.2018-16.com.example:test
+
+   5）设置提供服务的IP地址
+/>iscsi/iqn.2018-16.com.example:server0/tpg1/portals 
+   create   172.25.0.11
+
+/> exit   #保存并退出
+
+3.重起服务
+[root@server0 ~]# systemctl  restart  target
+[root@server0 ~]# systemctl  enable  target
+
+虚拟机desktop0_客户端：
+1.安装客户端软件
+  # yum repolist   #产生缓存
+  # yum -y install iscsi-initiator-utils.i686 
+
+2.修改配置文件，指定客户端声称的名字
+ # vim /etc/iscsi/initiatorname.iscsi 
+  InitiatorName=iqn.2018-16.com.example:test
+
+   vim 命令模式下：按 大写的 C 删除光标之后 
+
+3. 刷新  客户端声称的名字（客户端iqn）刷新IQN标识
+[root@desktop0 ~]# systemctl restart iscsid
+Warning: Unit file of iscsid.service changed on disk, 'systemctl daemon-reload' recommended.
+
+[root@desktop0 ~]# systemctl daemon-reload
+[root@desktop0 ~]# systemctl restart iscsid
+
+4.寻找服务端，发现iSCSI磁盘      man iscsiadm 
+   'Ctrl'+'shift'+'+' :变大
+   'Ctrl'+'-'
+# iscsiadm --mode discoverydb --type sendtargets --portal 172.25.0.11 --discover
+
+172.25.0.11:3260,1 iqn.2018-16.com.example:server0
+
+5.重起客户端iscsi服务
+[root@desktop0 ~]# lsblk 
+[root@desktop0 ~]# systemctl restart iscsi
+[root@desktop0 ~]# lsblk 
+
+################################################
+数据库服务基础
+
+  数据库:存放数据的仓库
+
+ 数据库中有很多的库，每一个库中有很多的表格，每一个表格有很多的记录
+
+表格：表记录    表字段（表头）
+
+一、安装部署MariaDB数据库
+[root@server0 ~]# yum -y install mariadb-server
+
+二、启动mariadb服务
+[root@server0 ~]# systemctl  restart  mariadb
+[root@server0 ~]# systemctl  enable  mariadb
+
+三、使用MariaDB数据库
+  
+[root@server0 ~]# mysql         #进入数据库
+  > show databases;             #查看所有库
+  > create  database  nsd1803;  #创建库
+  > show databases;        
+
+  > drop  database  nsd1803;    #删除库
+  > show  databases;
+  > exit                        #退出
+
+[root@server0 ~]#
+#################################################
+设置数据库管理员的密码
+
+  数据库管理员 和 系统管理员，不是同一个用户
+
+  数据库管理员：root 对所有库有完全控制权限， mysql库user表
+  系统管理员：root 对Linux系统有完全控制权限，/etc/passwd
+
+ 为数据库账号修改密码
+– mysqladmin [-u用户名]  [-p[旧密码]]  password '新密码'
+
+[root@server0 ~]# mysqladmin -u root  password '123'
+
+[root@server0 ~]# mysql  -u root   -p
+Enter password:
+
+[root@server0 ~]# mysql  -uroot  -p123  #非交互式进入
+
+
+ 数据库主配置文件 /etc/my.cnf
+
+了解：禁止监听,只服务于本机
+[root@server0 ~]# vim /etc/my.cnf
+ [mysqld]
+ skip-networking    //跳过网络监听
+
+
+  导入数据
+ http://classroom.example.com/pub/materials/users.sql
+ 
+ # wget 。。。。。。      #下载数据库文件
+ # mysql -uroot -p123
+
+MariaDB [(none)]> create database nsd1803;
+MariaDB [(none)]> exit
+
+ # mysql -uroot -p123 nsd1803 < users.sql
+ # mysql -uroot -p123
+
+MariaDB [nsd1803]> use nsd1803;  #进入nsd1803库
+MariaDB [nsd1803]> show tables;  #查看所有表格 
+
+
+  对于表格操作： 
+     增(insert)     删 (delete)     改 (update)     查 (select)
+ 
+  查 (select) :    select 表字段  from  表名；
+
+  select  *   from  表名；
+
+MariaDB [mysql]> use  nsd1803;    #进入nsd1803库
+MariaDB [nsd1803]> show tables;  #查看所有表格
+
+  > select  *   from   base;     #查询所有字段内容
+
+  > select name,password  from  base; 
+
+  > select *  from   location;
+
+查询表结构：desc  表名;
+###########################################
+
+ 数据库的授权：
+
+  除了 root 用户,此nsd1803数据库只能被用户 lisi 查询,
+  此用户的密码为123
+
+– GRANT 权限列表  ON 数据库名.表名 TO 用户名@客户机地址
+ IDENTIFIED BY '密码';
+
+ # mysql -uroot  -p123 
+
+ > grant select  on  nsd1803.*  to  lisi@localhost
+   identified by  '123';
+ 
+  当lisi用户从本地登陆输入密码123，将会获得nsd1803库中所有表的查询权限
+
+
+验证：  # mysql -ulisi  -p123    #lisi可以登陆即可
+
+#################################################
+案例5:使用数据库查询
+1. 在系统 server0 上使用数据库 nsd1803,并使用相
+应的 SQL 查询以回答下列问题:
+1)密码是 solicitous 的人的名字?
+
+MariaDB [mysql]> use nsd1803;
+MariaDB [nsd1803]> show tables;
+ 
+有条件的查询：  where 
+> select * from  base  where password='solicitous';
+> select name from base where password='solicitous';
+> select * from  base  where name='tom';
+> select * from  base  where password='456';
+
+2)有多少人的   姓名是 Barbara 同时居住在 Sunnyvale?
+
+> select  *  from  base,location  
+   where  base.name='Barbara' 
+   and  location.city='Sunnyvale'  
+   and  base.id=location.id;
+
+> select  count(*)  from  base,location  
+   where  base.name='Barbara' 
+   and  location.city='Sunnyvale'  
+   and  base.id=location.id;
+
+> insert base values (6,'Barbara','123456');
+> select  *  from  base;
+
+> insert location values (6,'Sunnyvale');
+> select  *  from  location;
+
+#####################################################
+1. 禁止空密码root用户访问 mariadb 数据库
+> use mysql;
+> desc user; #查看表结构
+
+> select user,host,password from user  where password='';
+
+> delete from user where password='';    #删除表记录
+
+> flush  privileges;    #刷新策略
+
+> select  user,host,password   from  user;
+
+####################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

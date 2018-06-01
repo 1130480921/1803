@@ -1,0 +1,544 @@
+还原三台虚拟机器
+[root@room9pc01 ~]# rht-vmctl reset classroom
+[root@room9pc01 ~]# rht-vmctl reset server
+[root@room9pc01 ~]# rht-vmctl reset desktop
+
+#################################################
+两台虚拟机防火墙默认区域设置为trusted
+
+搭建虚拟Web
+虚拟机Server0：
+1.安装httpd软件
+2.书写网页文件/var/www/html/index.html
+3.建立调用配置文件/etc/httpd/conf.d/nsd01.conf
+   <VirtualHost  *:80>
+         ServerName    server0.example.com
+         DocumentRoot  /var/www/html/
+   </VirtualHost>
+
+4.重起httpd服务
+
+虚拟机Desktop0:
+访问测试 firefox  server0.example.com
+
+#######################################################
+ 安全Web服务器  
+
+   https协议： 443 端口
+
+虚拟Server0：
+
+1.部署 网站证书（营业执照）
+# cd  /etc/pki/tls/certs/
+
+# wget http://classroom.example.com/pub/tls/certs/
+            server0.crt
+
+# ls
+
+2.部署  根证书（公安局信息，证书颁发机构的信息）
+# cd  /etc/pki/tls/certs/
+
+# wget  http://classroom.example.com/pub/example-ca.crt
+
+# ls
+
+3.部署 私钥 （用于解密）
+# cd /etc/pki/tls/private/
+
+# wget  http://classroom.example.com/pub/tls/private/
+        server0.key
+
+# ls
+
+4.安装可以支持加密Web的软件
+[root@server0 /]# yum -y install mod_ssl
+
+[root@server0 /]# rpm -q mod_ssl
+
+5.修改配置文件
+[root@server0 /]# vim  /etc/httpd/conf.d/ssl.conf
+      末行模式下  :set  nu   #添加行号
+
+ 59 DocumentRoot  "/var/www/html"
+ 60 ServerName    server0.example.com:443
+
+#指定网站证书
+100 SSLCertificateFile  /etc/pki/tls/certs/server0.crt
+
+#指定密钥
+107 SSLCertificateKeyFile /etc/pki/tls/private/server    0.key
+
+#指定根证书
+122 SSLCACertificateFile /etc/pki/tls/certs/example-ca.crt
+
+6.重起服务
+[root@server0 /]# systemctl  restart  httpd
+
+####################################################
+
+虚拟机Desktop0：
+[root@desktop0 ~]# firefox  https://server0.example.com
+
+
+####################################################
+parted(分区工具)
+ 要支持大容量（18EB）,需改用  gpt 分区模式可以有128个主分区
+
+[root@server0 /]# lsblk 
+[root@server0 /]# parted /dev/vdb
+
+(parted) mktable gpt  #指定分区的模式
+(parted) print        #输出所有分区信息
+(parted) mkpart       #划分新的分区
+ 分区名称？  []? haha          #分区的名字
+ 文件系统类型？  [ext2]? ext4   #分区的文件系统类型，不起实际作用
+ 起始点？ 0                                  #起始点 ， 第一个分区起始点为0
+ 结束点？ 4G                 #结束点
+ 警告: The resulting partition is not properly aligned
+ for best performance.
+ 忽略/Ignore/放弃/Cancel? Ignore   #忽略
+
+(parted) print        #输出所有分区信息
+(parted) unit GB      #设置显示单位
+(parted) print        #输出所有分区信息
+(parted) quit      #退出
+
+
+
+[root@server0 /]# parted /dev/vdb
+(parted) print 
+(parted) unit GB      #设置单位
+(parted) print 
+(parted) mkpart       #划分新的分区
+ 分区名称？  []? haha          #分区的名字
+ 文件系统类型？  [ext2]? ext4   #分区的文件系统类型，不起实际作用
+ 起始点？ 4G                 #起始点 ， 上一个分区的结束
+ 结束点？ 8G                 #结束点
+
+(parted) print
+(parted) quit
+
+[root@server0 /]# ls /dev/vdb[1-2]
+
+###################################################
+  交换空间: 缓解真实物理内存的压力
+
+  由硬盘的空间来组成
+
+ – 交换分区:以空闲分区充当的交换空间
+
+1.格式化交换分区
+[root@server0 /]# mkswap /dev/vdb1
+[root@server0 /]# mkswap /dev/vdb2
+
+2.启用交换分区/dev/vdb1
+[root@server0 /]# swapon  /dev/vdb1    #启用
+[root@server0 /]# swapon  -s           #查看交换空间的成员
+[root@server0 /]# swapon  /dev/vdb2
+[root@server0 /]# swapon  -s
+
+3.停用交换分区
+[root@server0 /]# swapoff  /dev/vdb1   #停用
+[root@server0 /]# swapon  -s
+
+4.实现开机自动启用交换分区/dev/vdb1
+[root@server0 /]# vim  /etc/fstab
+/dev/vdb1  swap   swap  defaults 0 0
+/dev/vdb2  swap   swap  defaults 0 0
+
+[root@server0 /]# swapoff /dev/vdb1
+[root@server0 /]# swapoff /dev/vdb2
+[root@server0 /]# swapon -s
+
+[root@server0 /]# swapon  -a   #自动检测/etc/fstab文件swap分区
+[root@server0 /]# swapon  -s
+
+#######################################################
+ 基础邮件服务
+
+   SMTP:用户发邮件协议  25
+   pop3:用户收邮件协议  110
+
+• 电子邮件服务器的基本功能
+  – 为用户提供电子邮箱存储空间(用户名@邮件域名)
+  – 处理用户发出的邮件 —— 传递给收件服务器
+  – 处理用户收到的邮件 —— 投递到邮箱
+
+
+DNS服务器：classroom.example.com以server0.example.com为例
+
+搭建基本邮件服务
+虚拟机Server0：
+
+1. 安装 postfix 提供邮件功能的软件 
+[root@server0 /]# yum  -y  install  postfix
+[root@server0 /]# rpm  -q  postfix
+
+2.修改配置文件/etc/postfix/main.cf 
+[root@server0 /]# vim  /etc/postfix/main.cf 
+  vim末行模式     ：set  nu
+
+99  myorigin = server0.example.com    #默认补全的域名后缀
+116 inet_interfaces = all             #允许本机所有网卡
+164 mydestination = server0.example.com  #判断为本域邮件
+
+3.重起postfix服务  
+[root@server0 /]# systemctl restart postfix
+
+##################################################
+使用mail命令发信/收信
+• mail 发信操作
+– mail  -s  '邮件标题'     -r  发件人     收件人
+
+• mail 收信操作
+– mail  [-u 用户名]
+
+1.创建用户
+[root@server0 /]# useradd zhangsan
+[root@server0 /]# useradd lisi
+
+2.收发邮件, -s 邮件的主题   -r 收件人
+[root@server0 /]# mail -s  '哈哈'    -r  zhangsan  lisi
+AAAAAAAAAAAAA
+BBBBBBBBBBBBB
+.
+EOT
+[root@server0 /]# mail -u lisi
+Heirloom Mail version 12.5 7/5/10.  Type ? for help.
+"/var/mail/lisi": 1 message 1 new
+>N  1 zhangsan@server0.exa  Wed Apr 18 14:29  19/631   
+& 1
+
+####################################################
+  # echo xixi  |  mail -s 'xixi' -r zhangsan   lisi
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

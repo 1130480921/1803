@@ -1,0 +1,393 @@
+  绿色：可以执行的程序
+
+• Linux命令
+– 用来实现某一类功能的指令或程序
+
+– 命令的执行依赖于解释器(例如:/bin/bash)
+      默认解释器：/bin/bash
+
+      用户------->解释器------>内核--------->硬件
+
+
+命令行的一般格式
+• 基本用法
+– 命令字    [选项]...      [参数1]     [参数2]...
+
+• 快捷键
+– Ctrl + c : 废弃当前编辑的命令行（结束正在执行的命令）
+– Esc + . : 粘贴上一个命令的参数
+
+– Ctrl + l:清空整个屏幕
+– Ctrl + u:清空至行首
+– Ctrl + w:往回删除一个单词(以空格界定)
+
+[root@nsd ~]# ls /etc/redhat-release 
+
+[root@nsd ~]# ls -l  Esc + .            #显示详细属性
+
+[root@nsd ~]# cat    Esc + .            #显示文本文件内容
+
+[root@nsd ~]# cat -n   Esc + .          #显示内容加上行号
+
+  Alt + .  =  Esc + .       #功能一致
+
+######################################################
+mount挂载操作
+
+windows系统显示光盘内容
+
+  光盘文件-------->光驱设备--------->双击访问CD驱动器（访问点）
+
+Linux系统显示光盘内容
+
+  光盘文件-------->光驱设备-----------> 目录（访问点）
+
+              /dev/hdc   IDE接口
+              /dev/sr0   SCSI接口
+
+   煤矿-------->洞口
+
+  快捷方式：青色
+
+1.通过图形鼠标选择，将光盘文件放入虚拟光驱设备中
+2.查看光驱设备文件
+[root@nsd ~]# ls /dev/sr0
+[root@nsd ~]# ls /dev/cdrom
+[root@nsd ~]# ls -l /dev/cdrom 
+
+3.创建访问点目录，挂载设备。  挂载的作用：提供设备的访问点
+[root@nsd ~]# mkdir  /dvd
+[root@nsd ~]# ls  /dvd
+[root@nsd ~]# mount  /dev/cdrom   /dvd
+mount: /dev/sr0 写保护，将以只读方式挂载
+[root@nsd ~]# ls  /dvd
+
+[root@nsd ~]# ls  /dvd/Packages    #查看Linux所有安装包
+4.卸载操作
+[root@nsd ~]# ls  /dvd
+[root@nsd ~]# umount  /dvd
+[root@nsd ~]# ls  /dvd
+
+注意事项：
+  1.[root@nsd dvd]# umount /dvd/
+    umount: /dvd：目标忙。
+        (有些情况下通过 lsof(8) 或 fuser(1) 可以
+         找到有关使用该设备的进程的有用信息)
+
+    2.挂载设备尽量挂载到自己创建的目录
+
+####################################################
+
+ls 列出文档及属性
+• ls — List
+– 格式:ls [选项]... [目录或文件名]
+
+• 常用命令选项
+– -l:以长格式显示
+– -A:包括名称以 . 开头的隐藏文档
+– -d:显示目录本身(而不是内容)的属性	
+– -h:提供易读的容量单位(K、M等)
+
+[root@nsd dvd]# ls  /root
+
+[root@nsd dvd]# ls  -l  /root
+[root@nsd dvd]# ls  -lh  /root
+
+[root@nsd dvd]# ls  -l  /boot
+[root@nsd dvd]# ls  -lh  /boot
+
+[root@nsd dvd]# ls  -ld  /boot
+[root@nsd dvd]# ls  -A  /root
+
+[root@nsd dvd]# ls -lhA  /root 
+
+##################################################
+ ～：用户的家目录
+
+ /root：管理员 root用户的家目录
+ /home：存放所有普通用户的家目录
+
+  ~user表示用户user的家目录
+
+[root@nsd /]# cd ~root        #切换到root用户的家目录
+[root@nsd ~]# pwd
+/root
+[root@nsd ~]# useradd  dc  #创建用户dc
+[root@nsd ~]# cd ~dc       #切换到dc用户的家目录
+[root@nsd dc]# pwd
+
+[root@nsd dc]# cd ~        #回到当前用户的家目录
+[root@nsd ~]# pwd
+/root
+
+
+#######################################################
+  . 表示当前目录
+  .. 表示父目录
+#######################################################
+使用通配符
+
+• 针对不确定的文档名称,以特殊字符表示
+– *:任意多个任意字符
+– ?:单个字符
+
+[root@nsd ~]# ls /dev/tty*
+
+[root@nsd ~]# ls /etc/*tab
+[root@nsd ~]# ls /etc/*.conf
+[root@nsd ~]# ls /boot/vm*
+[root@nsd ~]# ls /boot/init*
+
+[root@nsd ~]# ls /dev/tty?
+[root@nsd ~]# ls /dev/tty??
+[root@nsd ~]# ls /dev/tty???
+
+• 针对不确定的文档名称,以特殊字符表示
+– [a-z]:多个字符或连续范围中的一个,若无则忽略
+– {a,min,xy}:多组不同的字符串,全匹配
+
+[root@nsd ~]# ls /dev/tty[3-8]
+[root@nsd ~]# ls /dev/tty[0-9]
+
+[root@nsd ~]# ls /dev/tty{1,3,5,7,9,27}
+[root@nsd ~]# ls /dev/tty{1,3,5,7,9,27,S0}
+
+[root@nsd ~]# ls /etc/{fs,init}tab
+
+  请显示/dev目录下，tty20到tty30 所有的设备文件？
+
+ [root@nsd ~]# ls /dev/tty2[0-9]  /dev/tty30 
+
+ [root@nsd ~]# ls /dev/tty{2[0-9],30}
+
+####################################################
+ 别名的定义 ： 简化复杂的命令
+
+[root@nsd ~]# alias  hn='hostname'      #定义别名
+[root@nsd ~]# alias  myls='ls   -lh'    #定义别名
+
+[root@nsd ~]# alias                  #显示所有定义的别名
+
+[root@nsd ~]# hn
+[root@nsd ~]# myls  /root/
+
+[root@nsd ~]# unalias  hn        #删除别名hn
+[root@nsd ~]# hn
+bash: hn: 未找到命令...
+[root@nsd ~]# 
+
+###################################################
+
+ 复制、 删除、 移动
+
+
+• mv — Move
+– 格式:mv [选项]... 原文件...    目标路径
+[root@nsd ~]# mkdir  /mnt/nsd01
+[root@nsd ~]# touch  /mnt/1.txt
+[root@nsd ~]# ls  /mnt/
+[root@nsd ~]# mv  /mnt/1.txt    /mnt/nsd01
+[root@nsd ~]# ls  /mnt/
+[root@nsd ~]# ls  /mnt/nsd01/
+
+[root@nsd ~]# ls  /opt/
+[root@nsd ~]# ls  /mnt/nsd01
+[root@nsd ~]# mv  /opt/rh    /mnt/nsd01/
+[root@nsd ~]# ls  /opt/
+[root@nsd ~]# ls  /mnt/nsd01
+重命名：路径不变的移动
+[root@nsd ~]# ls  /mnt/
+[root@nsd ~]# mv  /mnt/nsd01/   /mnt/haha
+[root@nsd ~]# ls  /mnt/
+[root@nsd ~]# mv  /mnt/haha/   /mnt/stu
+[root@nsd ~]# ls  /mnt/
+#####################################################
+删除
+
+   -r: 递归，目录本身以及目录下所有
+
+[root@nsd ~]# rm -rf  /opt/*
+[root@nsd ~]# rm -rf  /mnt/*
+
+#####################################################
+• mkdir — Make Directory
+– 格式:mkdir [-p] [/路径/]目录名...
+
+[root@nsd ~]# mkdir -p /vod/movie/cartoon
+
+[root@nsd ~]# mkdir -p  /opt/a/b/c/d
+[root@nsd ~]# ls /opt/
+[root@nsd ~]# ls /
+
+[root@nsd ~]# rm -rf /vod
+[root@nsd ~]# ls /
+
+[root@nsd ~]# rm -rf /opt/*
+[root@nsd ~]# ls /opt/
+
+####################################################
+cp 复制
+• cp — Copy
+– 格式:cp [选项]... 原文件...     目标路径
+
+• 常用命令选项
+– -r:递归,复制目录时必须有此选项
+
+[root@nsd ~]# rm -rf  /opt/*
+[root@nsd ~]# ls  /opt/
+[root@nsd ~]# cp  /etc/passwd  /opt/
+[root@nsd ~]# ls  /opt/
+
+[root@nsd ~]# cp  /boot/   /opt/
+cp: 略过目录"/boot/"
+[root@nsd ~]# ls  /opt/
+
+[root@nsd ~]# cp -r  /boot/   /opt/
+[root@nsd ~]# ls  /opt/
+
+ 支持多个参数：把最后一个参数作为目标，其他作为源
+[root@nsd ~]# cp -r /etc/fstab  /etc/shadow /home/ /etc/redhat-release  /opt/
+
+[root@nsd ~]# ls /opt/
+####################################################
+强制覆盖
+
+[root@nsd ~]# rm -rf /opt/*
+[root@nsd ~]# cp -r /boot/ /opt/
+[root@nsd ~]# ls /opt/
+
+[root@nsd ~]# cp -r /boot/  /opt/
+   Ctrl+c 终止运行
+ 
+[root@nsd ~]# \cp -r /boot/ /opt/   #在本次操作，临时取消别名
+
+
+######################################################
+
+[root@nsd /]# cd /opt/
+[root@nsd opt]# ls
+boot
+[root@nsd opt]# cp  -r  /home/   .
+[root@nsd opt]# ls
+boot  home
+[root@nsd opt]#
+
+[root@nsd opt]# cp  /etc/redhat-release   /opt/
+[root@nsd opt]# ls  /opt/
+
+[root@nsd opt]# cp  /etc/redhat-release   /opt/red
+[root@nsd opt]# ls  /opt/
+
+#####################################################
+前提：
+[root@nsd /]# rm -rf /opt/*
+[root@nsd /]# ls /opt/
+
+第一次命名操作的意义：复制/home到/opt/ 重命名为test
+[root@nsd /]# cp -r /home/  /opt/test
+
+第二次命名操作的意义：复制/home到/opt/test目录下
+[root@nsd /]# cp -r /home/  /opt/test
+
+#####################################################
+vim文本编辑工具
+
+ vim工作模式：   命令模式     输入模式    末行模式
+
+[root@server0 ~]# vim   /opt/haxi.txt
+
+              i 键
+		命  --------------》 输入模式（按Esc 键回到命令模式）
+		令
+		模
+		式  --------------》末行模式（按Esc 键回到命令模式）
+                       : 键
+
+    末行模式下   ：wq  保存并退出  
+		    ：q!  强制不保存并退出  
+
+#####################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

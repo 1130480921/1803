@@ -1,0 +1,584 @@
+还原三台虚拟机器
+[root@room9pc01 ~]# rht-vmctl reset classroom
+[root@room9pc01 ~]# rht-vmctl reset server
+[root@room9pc01 ~]# rht-vmctl reset desktop
+
+#################################################
+
+附加权限
+
+Set UID
+• 附加在属主的 x 位上
+– 属主的权限标识会变为 s
+– 适用于可执行文件,Set UID可以让使用者具有文件属主的身份及部分权限
+– 传递所有者身份
+#####################################################
+
+
+
+
+
+磁道：track
+扇区：sector  默认512字节
+
+####################################################
+
+一块硬盘的“艺术”之旅
+• 识别硬盘 => 分区规划 => 格式化 => 挂载使用
+
+#################################################
+分区规划
+
+  MBR/msdos：主引导记录模式
+	– 1~4个主分区,或者 3个主分区+1个扩展分区(n个逻辑分区)
+	– 最大支持容量为 2.2TB 的磁盘
+	– 扩展分区不能格式化
+
+
+  GPT：128个主分区， 最大支持容量为 18EB 的磁盘
+
+####################################################
+• 修改硬盘的分区表
+  – fdisk  硬盘设备
+
+常用交互指令:
+	m 列出指令帮助
+	p 查看现有的分区表
+	n 新建分区
+	d 删除分区
+	q 放弃更改并退出
+	w 保存更改并退出
+
+一、查看系统所有的磁盘设备
+
+[root@server0 ~]# lsblk 
+
+二、划分新的分区
+[root@server0 ~]# fdisk /dev/vdb  
+   n 创建新的分区----->回车----->回车---->回车----->在last结束时 +2G
+   p 查看分区表
+   n 创建新的分区----->回车----->回车---->回车----->在last结束时 +2G
+   d 删除分区
+   w 保存并退出
+
+[root@server0 ~]# lsblk
+[root@server0 ~]# ls /dev/vdb[1-2]
+
+     /dev/sda5 :  第一块SCSI硬盘的第5个分区
+                                  第一块SCSI硬盘的第1个逻辑分区
+
+三、格式化分区
+   make  file system
+[root@server0 ~]# mkfs.ext4 /dev/vdb1   #格式化ext4文件系统
+
+[root@server0 ~]# mkfs.xfs /dev/vdb2    #格式化xfs文件系统
+
+[root@server0 ~]# blkid /dev/vdb1     #查看文件系统及UUID
+
+[root@server0 ~]# blkid /dev/vdb2     #查看文件系统及UUID
+
+
+四、挂载使用
+ [root@server0 ~]# mount  /dev/vdb1   /mypart1
+ mount: 挂载点 /mypart1 不存在
+ [root@server0 ~]# mkdir  /mypart1
+ [root@server0 ~]# mount  /dev/vdb1   /mypart1
+
+ [root@server0 ~]# mkdir  /mypart2
+ [root@server0 ~]# mount  /dev/vdb2   /mypart2
+
+ [root@server0 ~]# df -h   #查看正在挂载的分区使用情况
+          disk  file
+
+
+五、继续划分分区,最后一个主分区
+[root@server0 ~]# fdisk /dev/vdb  
+   n 创建新的分区----->回车----->回车---->回车----->在last结束时 +2G
+   p 查看分区表
+   w 保存分区
+
+ partprobe : 刷新  划分的新分区
+
+[root@server0 ~]# lsblk 
+[root@server0 ~]# ls /dev/vdb3
+
+六、继续划分分区，扩展分区与逻辑分区
+[root@server0 ~]# fdisk /dev/vdb  
+   n 创建新的分区----->回车----->回车---->回车----->在last结束时 回车
+   p 查看分区表
+
+   n 创建新的分区----->回车----->在last结束时 +1G
+   p 查看分区表
+
+   n 创建新的分区----->回车----->在last结束时 +1G
+   p 查看分区表
+   w 保存分区
+[root@server0 ~]# partprobe
+[root@server0 ~]# lsblk
+
+##################################################
+ 总结：
+       1.查看磁盘   lsblk
+       2.划分分区   fdisk
+       3.刷新          partprobe
+       4.格式化       mkfs.ext4    mkfs.xfs
+       5.查看文件系统   blkid
+       6.挂载使用     mount 
+###################################################
+将虚拟机关闭，图形添加新的硬盘60G
+
+[root@server0 ~]# poweroff 
+[root@room9pc01 ~]# ssh -X root@172.25.0.11
+
+[root@server0 ~]# lsblk 
+ ......
+ vdc    253:32   0  60G  0 disk
+
+#####################################################
+实现开机自动挂载
+
+• 修改/etc/fstab配置文件
+    file  system  table
+
+• 配置文件 /etc/fstab 的记录格式
+  设备路径            挂载点          类型        参数         备份标记    检测顺序
+
+vim命令模式：按 o 可以新起一行，进入插入模式
+
+[root@server0 ~]# vim  /etc/fstab 
+
+/dev/vdb1   /mypart1   ext4   defaults 0 0
+/dev/vdb2   /mypart2   xfs    defaults 0 0
+
+[root@server0 ~]# df -h
+[root@server0 ~]# mount -a
+[root@server0 ~]# df  -h
+   检测/etc/fstab开机自动挂载配置文件,格式是否正确
+   检测/etc/fstab中,书写完成,但当前没有挂载的设备,进行挂载
+
+#######################################################
+综合分区
+
+将 /dev/vdc进行分区
+        3个10G主分区
+        2个10G逻辑分区
+[root@server0 ~]# fdisk  /dev/vdc
+   p 查看分区表
+   n 创建主分区----->回车----->回车---->回车----->在last结束时 +10G
+         连续创建3个10G主分区
+      ......
+   n 创建扩展分区 
+                   ----->回车---->起始回车----->结束回车  将所有空间给扩展分区
+   p 查看分区表
+   n 创建逻辑分区----->起始回车------>结束+10G
+   n 创建逻辑分区----->起始回车------>结束+10G
+   p 查看分区表
+   w 保存并退出
+[root@server0 ~]# lsblk
+
+######################################################
+ LVM逻辑卷
+
+    作用： 1.整合分散的空间
+               2.逻辑卷空间可以扩大
+
+新建逻辑卷： 将众多的物理卷(pv)组成卷组(vg)，再从卷组中划分逻辑卷(lv)
+ 
+    面粉----------->大面团--------->小面团------>蒸-------->吃
+    
+    砖--------------->大房子---------->打隔段------>装修------->入住
+   
+  
+###################################################
+一、逻辑卷的创建
+
+1.建立vg卷组
+   格式：vgcreate  卷组名      设备路径
+
+[root@server0 ~]# vgcreate  nsd  /dev/vdc[1-2]  #创建卷组
+
+[root@server0 ~]# vgs   #查看卷组基本信息
+[root@server0 ~]# pvs   #查看物理卷基本信息
+
+2.创建lv逻辑卷
+   格式：lvcreate -n  逻辑卷名    -L  大小     卷组名
+[root@server0 ~]# lvcreate  -n  vo  -L 16G  nsd
+
+[root@server0 ~]# lvs    #查看逻辑卷基本信息
+[root@server0 ~]# vgs
+
+3.格式化，挂载使用
+[root@server0 ~]# mkfs.ext4 /dev/nsd/vo 
+[root@server0 ~]# blkid /dev/nsd/vo
+[root@server0 ~]# vim /etc/fstab 
+
+/dev/nsd/vo  /mylvm    ext4   defaults  0  0
+
+[root@server0 ~]# mount -a
+[root@server0 ~]# df -h
+
+####################################################
+逻辑卷的扩大，支持线上工作
+
+一、卷组有足够的剩余空间
+
+1. 扩建逻辑卷的空间
+[root@server0 ~]# lvextend -L 18G /dev/nsd/vo 
+[root@server0 ~]# lvs
+
+2. 扩建逻辑卷的文件系统
+   resize2fs : ext4文件系统扩展命令
+   xfs_growfs : xfs文件系统扩展命令
+
+[root@server0 ~]# df -h
+[root@server0 ~]# resize2fs /dev/nsd/vo 
+[root@server0 ~]# df -h
+
+二、卷组没有足够的剩余空间
+
+1.扩展卷组
+[root@server0 ~]# vgextend nsd /dev/vdc3     
+[root@server0 ~]# vgs
+
+2. 扩建逻辑卷的空间
+[root@server0 ~]# lvextend -L 25G /dev/nsd/vo 
+[root@server0 ~]# lvs
+
+3. 扩建逻辑卷的文件系统
+[root@server0 ~]# df -h
+[root@server0 ~]# resize2fs /dev/nsd/vo 
+[root@server0 ~]# df -h
+
+######################################################
+ 逻辑卷可以缩小，但是强烈不建议
+
+######################################################
+   PE：卷组划分空间的单位
+
+[root@server0 ~]# vgdisplay nsd   #显示卷组详细信息,看PE的大小
+
+[root@server0 ~]# vgchange -s 1M nsd   #修改卷组PE的大小
+[root@server0 ~]# vgdisplay nsd   #显示卷组详细信息,看PE的大小
+
+[root@server0 ~]# lvcreate -L 250M -n lvtest02 nsd
+  
+[root@server0 ~]# lvcreate -l 50 -n lvtest03 nsd
+[root@server0 ~]# lvs
+ 
+     -l:指定PE的个数
+
+#####################################################
+逻辑卷的删除
+
+  首先删除LV逻辑卷，在删除VG卷组，最后删除PV物理卷
+
+[root@server0 ~]# lvremove /dev/nsd/vo 
+[root@server0 ~]# umount /mylvm/
+[root@server0 ~]# lvremove /dev/nsd/vo 
+Do you really want to remove active logical volume vo?
+ [y/n]: y
+  Logical volume "vo" successfully removed
+
+[root@server0 ~]# lvs
+[root@server0 ~]# vgs
+
+#####################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+ 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+#######################################################
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

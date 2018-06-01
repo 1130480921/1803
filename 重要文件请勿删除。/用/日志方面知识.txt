@@ -1,0 +1,32 @@
+1.电脑被入侵了，首先把外网断了，把损失降低到最小。
+2.系统日志syslog 
+  系统日志文件都在/var/log目录中
+  日志进程 rsyslogd
+配置文件
+系统日志的格式 第1部分.时间戳 2.主机名 3.由哪个进程产生 4.日志的信息
+
+日志的配置文件/etc/rsyslog.conf（非常重要，只有ROOT用户可以查看）
+awk专门对文件作处理的
+
+默认把日志文件记录在
+跟登陆有关的日志文件是：tail -f /var/log/secure
+查看类型  
+last与lastb命令用来列出目前与过去登录系统的用户相关信息
+uptime  查看最近重启时间
+who和w查看为当前有哪些用户登陆
+日志相关的命令 last- 命令搜索wtmp，显示自从文件第一次创建以来登录过的用户
+lastlog
+ac  - 输出用户连接时间
+日志转存   /etc/logrotate.conf
+
+
+[root@room9pc01 cron.daily]# ls /etc/cron
+cron.d/       cron.deny     cron.monthly/ cron.weekly/  
+cron.daily/   cron.hourly/  crontab 
+代表每天执行，每周执行，每月执行。
+日志服务器 
+ yum源也可以scp 发送到指定Ip地址
+
+
+
+

@@ -1,0 +1,98 @@
+192.168.0.1~254    192.168.0.0是网络ID
+255.255.255.0
+
+192.168.1.1
+255.255.255.0
+
+网关
+
+路由表
+C 直连路由
+
+路由器接口配置好ip后属于直连网段，自动产生直连路由
+非直连网段则需要手工配置静态路由
+
+1，为客户机配置ip地址与网关
+2，为路由器配置ip地址
+3，打开路由器接口
+
+为路由器接口配置ip地址
+Router(config)#interface gigabitEthernet 0/0
+Router(config-if)#ip address 192.168.0.254 255.255.255.0
+打开接口
+Router(config-if)#no shutdown
+
+查看路由表
+Router#show ip route
+
+静态路由
+Router(config)#ip route 目标网段 目标网段的子网掩码  下一跳地址
+
+R1静态路由配置
+Router(config)#ip route 192.168.2.0 255.255.255.0 192.168.1.2
+Router(config)#ip route 192.168.3.0 255.255.255.0 192.168.1.2
+R2静态路由配置
+Router(config)#ip route 192.168.0.0 255.255.255.0 192.168.1.1
+
+如果想删除一个接口的ip地址
+Router(config-if)#no ip address
+接口地址配错后可直接配置新的覆盖
+
+注意！如果静态路由写错需要删除
+删除静态路由
+Router(config)#no ip route 192.168.0.0 255.255.255.0 192.168.1.1
+
+通过静态路由实现全网互通
+关键思路：每个路由器都要有去往任意网段的路由，如果没有就需要人工添加静态路由。
+
+企业的网关设备中需要使用默认路由
+
+默认路由配置
+Router(config)#ip route 0.0.0.0 0.0.0.0 192.168.1.2
+
+三层交换机所需配置
+开启三层交换机的路由功能
+Switch(config)#ip routing
+1，创建所需vlan
+2，为vlan配置ip地址，作为客户机的网关
+3，将客户机连接的端口加入vlan
+4，为三层交换机端口配置中继链路
+   首先需要打封装
+Switch(config-if)#switchport trunk encapsulation dot1q 
+Switch(config-if)#switchport mode trunk 
+
+二层交换机所需配置
+1，创建所需vlan
+2，将客户机连接的端口加入vlan
+3，连接三层交换机的端口需要配置中继链路
+
+将三层交换机端口转换路由器端口
+Switch(config-if)#no switchport
+
+三层交换机配置默认路由
+Switch(config)#ip route 0.0.0.0 0.0.0.0 192.168.4.2
+
+宣告
+反掩码，把1改为0,0改为1
+255.255.255.0
+0.0.0.255
+
+在路由器中开启ospf，并宣告直连网段
+Switch(config)#router ospf 1
+Switch(config-router)#network 192.168.4.0 0.0.0.255 area 0
+Switch(config-router)#network 192.168.5.0 0.0.0.255 area 0
+
+在三层交换机中开启ospf，并宣告直连网段
+Switch(config)#router ospf 1
+Switch(config-router)#network 192.168.1.0 0.0.0.255 area 0
+Switch(config-router)#network 192.168.2.0 0.0.0.255 area 0
+Switch(config-router)#
+Switch(config-router)#network 192.168.3.0 0.0.0.255 area 0
+Switch(config-router)#network 192.168.4.0 0.0.0.255 area 0
+
+
+
+
+
+
+
